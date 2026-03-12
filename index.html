@@ -160,6 +160,15 @@
       color: #9ca3af;
       margin-left: 6px;
     }
+    .error-box {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid #b91c1c;
+      background: rgba(248, 113, 113, 0.08);
+      color: #fecaca;
+      font-size: 0.8rem;
+    }
     @media (max-width: 768px) {
       th:nth-child(4),
       th:nth-child(5),
@@ -176,16 +185,29 @@
   <div id="root"></div>
 
   <script type="text/babel">
-    const { useState, useMemo } = React;
+    const { useState, useEffect, useMemo } = React;
 
-    // --- Mock HedgeNow Data Library snapshot (extend/replace with real data as needed) ---
-    const HEDGENOW_DATA = [
+    // ------------------------------------------------------------------
+    // DATA CONFIG: choose how data is loaded
+    // ------------------------------------------------------------------
+    const DATA_CONFIG = {
+      mode: "auto", // "auto" | "inline" | "remote" | "api"
+      // B) remote JSON file in your repo (e.g. /data/hedgenow_master.json)
+      remoteUrl: "/data/hedgenow_master.json",
+      // C) live API endpoint
+      apiUrl: "https://example.com/hedgenow-data.json"
+    };
+
+    // ------------------------------------------------------------------
+    // A) Inline fallback dataset (safe default)
+    // ------------------------------------------------------------------
+    const INLINE_DATA = [
       {
         id: "UAE_RES",
         name: "UAE Residential Real Estate",
         class: "real_estate",
-        sixYearReturn: 1.98,      // +198%
-        annualisedReturn: 0.234,  // 23.4%
+        sixYearReturn: 1.98,
+        annualisedReturn: 0.234,
         sharpe: 1.46,
         maxDrawdown: -0.19,
         ytd2026: 0.06,
@@ -378,27 +400,85 @@
     }
 
     function HedgeNowTracker() {
+      const [data, setData] = useState([]);
+      const [loading, setLoading] = useState(true);
+      const [error, setError] = useState(null);
       const [sortBy, setSortBy] = useState("sharpe");
       const [assetClassFilter, setAssetClassFilter] = useState("all");
       const [expandedId, setExpandedId] = useState(null);
 
-      const assetClasses = useMemo(() => {
-        const set = new Set(HEDGENOW_DATA.map(a => a.class));
-        return ["all", ...Array.from(set)];
+      useEffect(() => {
+        async function loadData() {
+          try {
+            setLoading(true);
+            setError(null);
+
+            let mode = DATA_CONFIG.mode;
+            if (mode === "auto") {
+              // Try remote JSON first, then API, then inline
+              mode = "remote";
+            }
+
+            if (mode === "inline") {
+              setData(INLINE_DATA);
+              setLoading(false);
+              return;
+            }
+
+            if (mode === "remote") {
+              if (!DATA_CONFIG.remoteUrl) throw new Error("remoteUrl not configured");
+              const res = await fetch(DATA_CONFIG.remoteUrl);
+              if (!res.ok) throw new Error("Remote JSON fetch failed");
+              const json = await res.json();
+              // Expect either array of objects or {data: [...]}
+              const arr = Array.isArray(json) ? json : json.data;
+              if (!Array.isArray(arr)) throw new Error("Remote JSON format invalid");
+              setData(arr);
+              setLoading(false);
+              return;
+            }
+
+            if (mode === "api") {
+              if (!DATA_CONFIG.apiUrl) throw new Error("apiUrl not configured");
+              const res = await fetch(DATA_CONFIG.apiUrl);
+              if (!res.ok) throw new Error("API fetch failed");
+              const json = await res.json();
+              const arr = Array.isArray(json) ? json : json.data;
+              if (!Array.isArray(arr)) throw new Error("API JSON format invalid");
+              setData(arr);
+              setLoading(false);
+              return;
+            }
+
+            // Fallback
+            setData(INLINE_DATA);
+            setLoading(false);
+          } catch (e) {
+            console.error(e);
+            setError(e.message || "Failed to load data");
+            setData(INLINE_DATA);
+            setLoading(false);
+          }
+        }
+        loadData();
       }, []);
 
+      const assetClasses = useMemo(() => {
+        const set = new Set(data.map(a => a.class));
+        return ["all", ...Array.from(set)];
+      }, [data]);
+
       const filtered = useMemo(() => {
-        return HEDGENOW_DATA.filter(a =>
+        return data.filter(a =>
           assetClassFilter === "all" ? true : a.class === assetClassFilter
         );
-      }, [assetClassFilter]);
+      }, [assetClassFilter, data]);
 
       const sorted = useMemo(() => {
         const arr = [...filtered];
         arr.sort((a, b) => {
           if (sortBy === "safest") {
-            // safest = highest (least negative) maxDrawdown
-            return b.maxDrawdown - a.maxDrawdown;
+            return (b.maxDrawdown ?? -1) - (a.maxDrawdown ?? -1);
           } else {
             return (b[sortBy] ?? 0) - (a[sortBy] ?? 0);
           }
@@ -447,6 +527,18 @@
               </select>
             </div>
           </div>
+
+          {loading && (
+            <div className="metric-muted" style={{ marginBottom: "12px" }}>
+              Loading data…
+            </div>
+          )}
+
+          {error && (
+            <div className="error-box">
+              Data load issue: {error}. Using inline HedgeNow snapshot as fallback.
+            </div>
+          )}
 
           <div className="table-container">
             <table>
@@ -528,8 +620,10 @@
       );
     }
 
-    const root = ReactDOM.createRoot(document.getElementById("root"));
-    root.render(<HedgeNowTracker />);
+    document.addEventListener("DOMContentLoaded", () => {
+      const root = ReactDOM.createRoot(document.getElementById("root"));
+      root.render(<HedgeNowTracker />);
+    });
   </script>
 </body>
 </html>

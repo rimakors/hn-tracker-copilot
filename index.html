@@ -21,105 +21,6 @@
       margin: 0 auto;
       padding: 24px 16px 48px;
     }
-    .loading-screen {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      background: #050915;
-    }
-    .spinner {
-      border: 4px solid #1f2937;
-      border-top: 4px solid #4ade80;
-      border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      animation: spin 1s linear infinite;
-      margin-bottom: 16px;
-    }
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-    .loading-text {
-      color: #9ca3af;
-      font-size: 1.1rem;
-      margin-bottom: 8px;
-    }
-    .debug-panel {
-      position: fixed;
-      bottom: 10px;
-      right: 10px;
-      width: 350px;
-      max-height: 300px;
-      background: #0b1220;
-      border: 1px solid #374151;
-      border-radius: 8px;
-      padding: 12px;
-      font-size: 0.75rem;
-      font-family: monospace;
-      overflow-y: auto;
-      z-index: 9999;
-      display: none;
-    }
-    .debug-panel.show {
-      display: block;
-    }
-    .debug-log {
-      margin: 4px 0;
-      padding: 4px;
-      border-radius: 3px;
-    }
-    .debug-info {
-      background: rgba(74, 222, 128, 0.1);
-      color: #4ade80;
-    }
-    .debug-error {
-      background: rgba(249, 115, 115, 0.1);
-      color: #f97373;
-    }
-    .debug-warn {
-      background: rgba(234, 179, 8, 0.1);
-      color: #facc15;
-    }
-    .fallback-screen {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      background: #050915;
-      padding: 24px;
-      text-align: center;
-    }
-    .error-title {
-      font-size: 2rem;
-      color: #f97373;
-      margin-bottom: 16px;
-    }
-    .error-message {
-      color: #d1d5db;
-      margin-bottom: 24px;
-      max-width: 500px;
-      line-height: 1.6;
-    }
-    .debug-toggle {
-      position: fixed;
-      bottom: 10px;
-      left: 10px;
-      background: #374151;
-      color: #f5f5f5;
-      border: none;
-      padding: 8px 12px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 0.75rem;
-      z-index: 10000;
-    }
-    .debug-toggle:hover {
-      background: #4b5563;
-    }
     h1 {
       font-weight: 500;
       letter-spacing: 0.04em;
@@ -259,15 +160,6 @@
       color: #9ca3af;
       margin-left: 6px;
     }
-    .error-box {
-      margin-top: 12px;
-      padding: 10px 12px;
-      border-radius: 8px;
-      border: 1px solid #b91c1c;
-      background: rgba(248, 113, 113, 0.08);
-      color: #fecaca;
-      font-size: 0.8rem;
-    }
     @media (max-width: 768px) {
       th:nth-child(4),
       th:nth-child(5),
@@ -282,63 +174,22 @@
 </head>
 <body>
   <div id="root"></div>
-  <button class="debug-toggle" onclick="toggleDebugPanel()">🔧 Debug</button>
-  <div id="debugPanel" class="debug-panel"></div>
 
   <script type="text/babel">
-    const { useState, useEffect, useMemo } = React;
+    const { useState, useMemo } = React;
 
-    // ===== DEBUG LOGGING SYSTEM =====
-    const debugLogs = [];
-    const MAX_LOGS = 50;
-
-    function log(message, type = 'info') {
-      const timestamp = new Date().toLocaleTimeString();
-      const entry = { timestamp, message, type };
-      debugLogs.push(entry);
-      if (debugLogs.length > MAX_LOGS) debugLogs.shift();
-      console.log(`[HN-Tracker ${type.toUpperCase()}] ${message}`);
-      updateDebugPanel();
-    }
-
-    function logError(message, error = null) {
-      const fullMessage = error ? `${message}: ${error.message}` : message;
-      log(fullMessage, 'error');
-    }
-
-    function updateDebugPanel() {
-      const panel = document.getElementById('debugPanel');
-      panel.innerHTML = debugLogs.map(entry => `
-        <div class="debug-log debug-${entry.type}">
-          <strong>${entry.timestamp}</strong> [${entry.type.toUpperCase()}] ${entry.message}
-        </div>
-      `).join('');
-    }
-
-    window.toggleDebugPanel = function() {
-      const panel = document.getElementById('debugPanel');
-      panel.classList.toggle('show');
-    };
-
-    // ===== DATA CONFIG =====
-    const DATA_CONFIG = {
-      mode: "inline",
-      remoteUrl: "/data/hedgenow_master.json",
-      apiUrl: "https://example.com/hedgenow-data.json"
-    };
-
-    // ===== INLINE DATA =====
-    const INLINE_DATA = [
+    // --- Mock HedgeNow Data Library snapshot (extend/replace with real data as needed) ---
+    const HEDGENOW_DATA = [
       {
         id: "UAE_RES",
         name: "UAE Residential Real Estate",
         class: "real_estate",
-        sixYearReturn: 1.98,
-        annualisedReturn: 0.234,
+        sixYearReturn: 1.98,      // +198%
+        annualisedReturn: 0.234,  // 23.4%
         sharpe: 1.46,
         maxDrawdown: -0.19,
         ytd2026: 0.06,
-        headline: "Dubai's residential market led global risk-adjusted performance over the last cycle.",
+        headline: "Dubai’s residential market led global risk-adjusted performance over the last cycle.",
         liquidity: "Low–Medium (quarterly to annual liquidity, depending on structure)",
         minInvestment: "Typically USD 250k+ via funds or direct structures",
         dataSource: "Dubai Land Department, JLL, HedgeNow composite indices"
@@ -526,148 +377,28 @@
       return x.toFixed(2);
     }
 
-    // ===== LOADING COMPONENT =====
-    function LoadingScreen() {
-      return (
-        <div className="loading-screen">
-          <div className="spinner"></div>
-          <div className="loading-text">⏳ Loading HedgeNow Tracker...</div>
-          <div style={{ color: '#6b7280', fontSize: '0.85rem' }}>Press 🔧 Debug to view logs</div>
-        </div>
-      );
-    }
-
-    // ===== ERROR BOUNDARY =====
-    class ErrorBoundary extends React.Component {
-      constructor(props) {
-        super(props);
-        this.state = { hasError: false, error: null };
-      }
-
-      static getDerivedStateFromError(error) {
-        logError("React Error Boundary caught error", error);
-        return { hasError: true, error };
-      }
-
-      componentDidCatch(error, errorInfo) {
-        logError("Component stack", new Error(errorInfo.componentStack));
-      }
-
-      render() {
-        if (this.state.hasError) {
-          return (
-            <div className="fallback-screen">
-              <div className="error-title">⚠️ Error Loading Tracker</div>
-              <div className="error-message">
-                <p>Something went wrong while rendering the tracker.</p>
-                <p><strong>Error:</strong> {this.state.error?.message}</p>
-                <p>Please try refreshing the page or check the debug logs.</p>
-              </div>
-              <button 
-                className="debug-toggle" 
-                onClick={() => toggleDebugPanel()}
-                style={{ position: 'static', marginTop: '20px' }}
-              >
-                View Debug Logs
-              </button>
-            </div>
-          );
-        }
-
-        return this.props.children;
-      }
-    }
-
-    // ===== MAIN TRACKER COMPONENT =====
     function HedgeNowTracker() {
-      const [data, setData] = useState([]);
-      const [loading, setLoading] = useState(true);
-      const [error, setError] = useState(null);
       const [sortBy, setSortBy] = useState("sharpe");
       const [assetClassFilter, setAssetClassFilter] = useState("all");
       const [expandedId, setExpandedId] = useState(null);
 
-      useEffect(() => {
-        async function loadData() {
-          try {
-            log("Initializing data load...");
-            setLoading(true);
-            setError(null);
-
-            let mode = DATA_CONFIG.mode;
-            log(`Data mode: ${mode}`);
-
-            if (mode === "auto") {
-              mode = "remote";
-              log("Auto mode detected, trying remote...");
-            }
-
-            if (mode === "inline") {
-              log(`Loading ${INLINE_DATA.length} assets from inline data`);
-              setData(INLINE_DATA);
-              setLoading(false);
-              log("✅ Data loaded successfully");
-              return;
-            }
-
-            if (mode === "remote") {
-              if (!DATA_CONFIG.remoteUrl) throw new Error("remoteUrl not configured");
-              log(`Fetching from: ${DATA_CONFIG.remoteUrl}`);
-              const res = await fetch(DATA_CONFIG.remoteUrl);
-              if (!res.ok) throw new Error(`HTTP ${res.status}: Remote JSON fetch failed`);
-              const json = await res.json();
-              const arr = Array.isArray(json) ? json : json.data;
-              if (!Array.isArray(arr)) throw new Error("Remote JSON format invalid");
-              log(`Loaded ${arr.length} assets from remote`);
-              setData(arr);
-              setLoading(false);
-              return;
-            }
-
-            if (mode === "api") {
-              if (!DATA_CONFIG.apiUrl) throw new Error("apiUrl not configured");
-              log(`Fetching from API: ${DATA_CONFIG.apiUrl}`);
-              const res = await fetch(DATA_CONFIG.apiUrl);
-              if (!res.ok) throw new Error(`HTTP ${res.status}: API fetch failed`);
-              const json = await res.json();
-              const arr = Array.isArray(json) ? json : json.data;
-              if (!Array.isArray(arr)) throw new Error("API JSON format invalid");
-              log(`Loaded ${arr.length} assets from API`);
-              setData(arr);
-              setLoading(false);
-              return;
-            }
-
-            log("Fallback: using inline data");
-            setData(INLINE_DATA);
-            setLoading(false);
-          } catch (e) {
-            logError("Data loading failed", e);
-            setError(e.message || "Failed to load data");
-            setData(INLINE_DATA);
-            log(`Fallback: using ${INLINE_DATA.length} inline assets`);
-            setLoading(false);
-          }
-        }
-        loadData();
+      const assetClasses = useMemo(() => {
+        const set = new Set(HEDGENOW_DATA.map(a => a.class));
+        return ["all", ...Array.from(set)];
       }, []);
 
-      const assetClasses = useMemo(() => {
-        const set = new Set(data.map(a => a.class));
-        return ["all", ...Array.from(set)];
-      }, [data]);
-
       const filtered = useMemo(() => {
-        return data.filter(a =>
+        return HEDGENOW_DATA.filter(a =>
           assetClassFilter === "all" ? true : a.class === assetClassFilter
         );
-      }, [assetClassFilter, data]);
+      }, [assetClassFilter]);
 
       const sorted = useMemo(() => {
         const arr = [...filtered];
         arr.sort((a, b) => {
           if (sortBy === "safest") {
-            return (b.maxDrawdown ?? -1) - (a.maxDrawdown ?? -1);
+            // safest = highest (least negative) maxDrawdown
+            return b.maxDrawdown - a.maxDrawdown;
           } else {
             return (b[sortBy] ?? 0) - (a[sortBy] ?? 0);
           }
@@ -679,8 +410,6 @@
         setExpandedId(prev => (prev === id ? null : id));
       };
 
-      if (loading) return <LoadingScreen />;
-
       return (
         <div className="app-container">
           <div className="header-row">
@@ -691,7 +420,7 @@
               </div>
             </div>
             <div className="header-right">
-              As of: <span class="pill">March 2026</span>
+              As of: <span className="pill">March 2026</span>
             </div>
           </div>
 
@@ -718,12 +447,6 @@
               </select>
             </div>
           </div>
-
-          {error && (
-            <div className="error-box">
-              ⚠️ Data load issue: {error}. Using inline HedgeNow snapshot as fallback.
-            </div>
-          )}
 
           <div className="table-container">
             <table>
@@ -794,7 +517,7 @@
                             </div>
                           </td>
                         </tr>
-                      );
+                      )}
                     </React.Fragment>
                   );
                 })}
@@ -805,67 +528,8 @@
       );
     }
 
-    // ===== INITIALIZATION =====
-    log("App initializing...");
-
-    window.onerror = function(message, source, lineno, colno, error) {
-      logError(`Global JS Error at ${source}:${lineno}:${colno}`, new Error(message));
-    };
-
-    window.addEventListener('unhandledrejection', function(event) {
-      logError("Unhandled Promise Rejection", event.reason);
-    });
-
-    function initApp() {
-      try {
-        const root = document.getElementById("root");
-        if (!root) {
-          throw new Error("Root element not found");
-        }
-
-        log("React and ReactDOM available");
-        log("Creating React root...");
-
-        const reactRoot = ReactDOM.createRoot(root);
-        log("Rendering app...");
-
-        reactRoot.render(
-          <ErrorBoundary>
-            <HedgeNowTracker />
-          </ErrorBoundary>
-        );
-        log("✅ App rendered successfully");
-      } catch (e) {
-        logError("Critical initialization error", e);
-        const root = document.getElementById("root");
-        if (root) {
-          root.innerHTML = `
-            <div class="fallback-screen">
-              <div class="error-title">⚠️ Failed to Initialize</div>
-              <div class="error-message">
-                <p>${e.message}</p>
-                <p>Press 🔧 Debug to see full error logs</p>
-              </div>
-            </div>
-          `;
-        }
-      }
-    }
-
-    if (document.readyState === "loading") {
-      log("Waiting for DOMContentLoaded...");
-      document.addEventListener("DOMContentLoaded", initApp);
-    } else {
-      log("DOM already loaded, initializing...");
-      initApp();
-    }
-
-    // Fallback timeout
-    setTimeout(() => {
-      if (document.getElementById("root").innerHTML.includes("Loading")) {
-        logError("Initialization timeout - React may not have loaded");
-      }
-    }, 5000);
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<HedgeNowTracker />);
   </script>
 </body>
 </html>
